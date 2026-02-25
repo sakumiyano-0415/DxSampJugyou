@@ -18,6 +18,7 @@ public:
 	void Release();
 	int scene_; // 0=タイトル 1=ゲーム 2=ゲームオーバー
 	int gameOverTimer_;    // ゲームオーバー用タイマー
+	int invincibleTimer_; // プレイヤーの無敵時間用タイマー
 private:
 	//Player* player_;
 	//Enemy* enemy_;
@@ -28,5 +29,7 @@ private:
 	void ShootBullet();
 	void ClearAllObjects();
 	int long long totalScore_;
+	int lives_;
+	int respawnTimer_;
 };
 

@@ -64,6 +64,9 @@ void Stage::Initialize()
 	scene_ = 0;
 	totalScore_ = 0;
 	gameOverTimer_ = 0;
+	lives_ = 3;
+	respawnTimer_ = 0;
+	invincibleTimer_ = 0;
 }
 
 void Stage::Update()
@@ -113,12 +116,24 @@ void Stage::Update()
 		{
 			ShootBullet();
 		}
-
-		// プレイヤー死亡チェック
-		if (!player->IsAlive())
+		// 復活待ち中
+		if (!player->IsAlive() && respawnTimer_ > 0)
 		{
-			scene_ = 2;
-			gameOverTimer_ = 0;
+			respawnTimer_--;
+
+			if (respawnTimer_ == 0)
+			{
+				player = new Player(
+					START_POS, START_VEL, START_COLOR,
+					START_DIR, START_RADIUS, START_OMEGA
+				);
+				AddObject(player);
+			}
+		}
+		// 無敵時間のカウントダウン
+		if (invincibleTimer_ > 0)
+		{
+			invincibleTimer_--;
 		}
 	}
 	break;
@@ -162,6 +177,10 @@ void Stage::Draw()
 			GetColor(255, 255, 255),
 			"SCORE : %020lld",
 			totalScore_);
+		DrawFormatString(10, 40,
+			GetColor(255, 255, 255),
+			"LIVES : %d",
+			lives_);
 	}
 	break;
 
@@ -279,6 +298,7 @@ void Stage::Enemy_vs_Bullet()
 void Stage::Player_vs_Enemy()
 {
 	if (!player->IsAlive()) return; // プレイヤーが死んでたらスルー
+	if (invincibleTimer_ > 0) return; // 無敵時間中は当たり判定なし
 
 	//生きている敵を一時保管
 	std::vector<Enemy*> aliveEnemies;
@@ -309,16 +329,23 @@ void Stage::Player_vs_Enemy()
 		{
 			//プレイヤーを死亡状態にする
 			player->Dead();
+			lives_--; // 残機を減らす
 
 			//爆発エフェクト生成
 			ExplosionEffect* effect = new ExplosionEffect(player->GetPos());
 			effect->SetPlayerEffect(true); // プレイヤー用エフェクトに設定
 			AddObject(effect);
 
-			scene_ = 2;          // ゲームオーバーへ
-			gameOverTimer_ = 0;  // タイマー初期化
-
-			break; //1回当たったら終了
+			if (lives_ <= 0)
+			{
+				scene_ = 2;          // 本当のゲームオーバー
+				gameOverTimer_ = 0;
+			}
+			else
+			{
+				respawnTimer_ = 120; // 2秒待つ
+				invincibleTimer_ = 60; // 1秒無敵
+			}
 		}
 	}
 }
