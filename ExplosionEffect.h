@@ -10,6 +10,7 @@ public:
 	void Update() override;
 	void Draw() override;
 	bool IsFinished() const { return isFinished_; }
+	
 
 	struct Particle
 	{

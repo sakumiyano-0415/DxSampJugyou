@@ -19,8 +19,10 @@ public:
 private:
 	//Player* player_;
 	//Enemy* enemy_;
+	void Enemy_vs_Bullet();
 	void DeleteBullet();
 	void DeleteEnemy();
 	void ShootBullet();
+	int long long totalScore_;
 };
 

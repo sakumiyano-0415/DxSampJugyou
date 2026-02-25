@@ -64,11 +64,11 @@ void Player::Update()
 	vertex_[2] = { pos_.x + p[2].x, pos_.y + p[2].y };
 	//初期座標がここまでで決定
 
-	if (Input::IsKeepKeyDown(KEY_INPUT_LEFT))
+	if (Input::IsKeepKeyDown(KEY_INPUT_A))
 	{
 		angle_ = angle_ + omega_ * GetDeltaTime();
 	}
-	if (Input::IsKeepKeyDown(KEY_INPUT_RIGHT))
+	if (Input::IsKeepKeyDown(KEY_INPUT_D))
 	{
 		angle_ = angle_ - omega_ * GetDeltaTime();
 	}
@@ -142,5 +142,5 @@ void Player::Draw()
 		GetColor(255, 0, 0), TRUE
 	);
 
-	DrawFormatString(50, 50, GetColor(255, 255, 255), "RotAngle:%lf", angle_);
+	// DrawFormatString(50, 50, GetColor(255, 255, 255), "RotAngle:%lf", angle_);
 }

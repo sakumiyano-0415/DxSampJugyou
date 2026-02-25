@@ -99,6 +99,7 @@ void ExplosionEffect::Update()
 
 void ExplosionEffect::Draw()
 {
+	int col[3] = { 161, 129, 42 }; // 爆発の色を変えるときはここをいじるといいよ
 	if (isFinished_) return;//終了してたら描画しない
 
 	for(auto& particle : particles_)
