@@ -20,6 +20,7 @@ ExplosionEffect::ExplosionEffect(const Vector2D& pos, int particleCount)
 	SetObjType(OBJ_TYPE::EFFECT);
 	particles_.clear();
 	isFinished_ = false;
+	isPlayerEffect_ = false; // デフォルトは敵用
 
 
 
@@ -109,10 +110,20 @@ void ExplosionEffect::Draw()
 			//パーティクルの描画
 			Vector2D drawPos = Math2D::Add(GetPos(), particle.Offset);
 			Vector2D screenPos = Math2D::World2Screen(drawPos);
+			int r = 255;
+			int g = 255;
+			int b = 255;
+
+			if (isPlayerEffect_)
+			{
+				g = 0;
+				b = 0;
+			}
+
 			int particleColor = GetColor(
-				(int)(255 * particle.alpha),
-				(int)(255 * particle.alpha),
-				(int)(255 * particle.alpha)
+				(int)(r * particle.alpha),
+				(int)(g * particle.alpha),
+				(int)(b * particle.alpha)
 			);
 			DrawCircle((int)screenPos.x,
 						(int)screenPos.y,
@@ -121,6 +132,10 @@ void ExplosionEffect::Draw()
 		}
 	}
 
+}
+void ExplosionEffect::SetPlayerEffect(bool flag)
+{
+	isPlayerEffect_ = flag;
 }
 //エフェクトがじんわり消えるところを実装
 //あるlifeからだんだん色を薄くして、さいご黒になればいいよ。

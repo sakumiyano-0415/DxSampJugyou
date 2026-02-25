@@ -144,3 +144,13 @@ void Player::Draw()
 
 	// DrawFormatString(50, 50, GetColor(255, 255, 255), "RotAngle:%lf", angle_);
 }
+
+float Player::GetCollisionRadius() const
+{
+	return radius_ * 0.6f; //三角形の頂点は半径の位置にあるけど、当たり判定は少し小さくしたいから、0.6倍してるよ
+}
+
+void Player::Dead()
+{
+	isAlive_ = false;
+}

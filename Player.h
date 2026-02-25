@@ -23,6 +23,8 @@ public://セッターゲッターは全部インラインで書いたよ
 	float GetOmega() { return omega_; }
 	void SetAngle(float angle) { angle_ = angle; }
 	float GetAngle() { return angle_; }
+	float GetCollisionRadius() const;
+	void Dead();
 	bool IsAlive() { return isAlive_; }
 private:
 	//独自のメンバ

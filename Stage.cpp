@@ -61,47 +61,129 @@ Stage::~Stage()
 
 void Stage::Initialize()
 {
-	player = new Player(START_POS, START_VEL, START_COLOR,
-		                START_DIR, START_RADIUS, START_OMEGA);
-
-	AddObject(player);
-
-	//enemies.clear();
-	//enemies.reserve(ENEMY_NUM);
-
-	//最初の敵を生成
-	for (int i = 0; i < ENEMY_NUM; i++)
-	{
-		Enemy* e = new Enemy(Enemy::Size::LARGE, 8);
-		AddObject(e);
-	}
-
+	scene_ = 0;
 	totalScore_ = 0;
+	gameOverTimer_ = 0;
 }
 
 void Stage::Update()
 {
-	// 敵と弾の当たり判定
-	Enemy_vs_Bullet();
-	
-	//賞味期限切れの弾を消す
-	DeleteBullet();
-	//死んでる敵を消す
-	DeleteEnemy();
-	UpdateAllObjects();
-
-	//Zキーが押されたら弾丸を生成
-	if (Input::IsKeyDown(KEY_INPUT_Z))
+	switch (scene_)
 	{
-		ShootBullet();
+	case 0: // ===== タイトル =====
+	{
+		if (CheckHitKey(KEY_INPUT_SPACE))
+		{
+			player = new Player(START_POS, START_VEL, START_COLOR,
+				START_DIR, START_RADIUS, START_OMEGA);
+
+			AddObject(player);
+
+			//enemies.clear();
+			//enemies.reserve(ENEMY_NUM);
+
+			//最初の敵を生成
+			for (int i = 0; i < ENEMY_NUM; i++)
+			{
+				Enemy* e = new Enemy(Enemy::Size::LARGE, 8);
+				AddObject(e);
+			}
+
+			totalScore_ = 0;
+			scene_ = 1;
+		}
+	}
+	break;
+
+	case 1: // ===== ゲーム中 =====
+	{
+		// 更新
+		UpdateAllObjects();
+
+		// 当たり判定
+		Enemy_vs_Bullet();
+		Player_vs_Enemy();
+
+		// 削除処理
+		DeleteBullet();
+		DeleteEnemy();
+
+		// 弾発射
+		if (CheckHitKey(KEY_INPUT_Z))
+		{
+			ShootBullet();
+		}
+
+		// プレイヤー死亡チェック
+		if (!player->IsAlive())
+		{
+			scene_ = 2;
+			gameOverTimer_ = 0;
+		}
+	}
+	break;
+
+	case 2: // ===== ゲームオーバー =====
+	{
+		UpdateAllObjects();
+		gameOverTimer_++;
+
+		if (gameOverTimer_ > 180)
+		{
+			ClearAllObjects();  // 全てのオブジェクトを削除
+			Initialize();       // ステージを初期化してタイトルに戻る
+		}
+	}
+	break;
 	}
 }
 
 void Stage::Draw()
 {
-	DrawAllObjects();
-	DrawFormatString(10, 10, GetColor(255, 255, 255),
-		"SCORE : %020lld", totalScore_); //スコア表示
+	switch (scene_)
+	{
+	case 0: // ===== タイトル =====
+	{
+		DrawFormatString(300, 250,
+			GetColor(255, 255, 255),
+			"TITLE");
+
+		DrawFormatString(260, 300,
+			GetColor(255, 255, 255),
+			"PRESS SPACE TO START");
+	}
+	break;
+
+	case 1: // ===== ゲーム中 =====
+	{
+		DrawAllObjects();
+
+		DrawFormatString(10, 10,
+			GetColor(255, 255, 255),
+			"SCORE : %020lld",
+			totalScore_);
+	}
+	break;
+
+	case 2: // ===== ゲームオーバー =====
+	{
+		DrawAllObjects();
+
+		DrawFormatString(10, 10,
+			GetColor(255, 255, 255),
+			"SCORE : %020lld",
+			totalScore_);
+
+		// 少し遅れて表示
+		if (gameOverTimer_ > 60)
+		{
+			DrawFormatString(280, 300,
+				GetColor(255, 0, 0),
+				"GAME OVER");
+		}
+	}
+	break;
+	}
 }
 
 void Stage::Release()
@@ -194,6 +276,53 @@ void Stage::Enemy_vs_Bullet()
 	}
 }
 
+void Stage::Player_vs_Enemy()
+{
+	if (!player->IsAlive()) return; // プレイヤーが死んでたらスルー
+
+	//生きている敵を一時保管
+	std::vector<Enemy*> aliveEnemies;
+	aliveEnemies.clear();
+
+	//objectsの中から生きている敵だけ取得
+	for (auto& obj : objects)
+	{
+		if (obj->GetType() == OBJ_TYPE::ENEMY)
+		{
+			Enemy* e = (Enemy*)obj;
+			if (e->IsAlive())
+			{
+				aliveEnemies.push_back(e);
+			}
+		}
+	}
+
+	//プレイヤーと敵の当たり判定
+	for (auto& enemy : aliveEnemies)
+	{
+		float dist = Math2D::Length(
+			Math2D::Sub(player->GetPos(), enemy->GetPos())
+		);
+
+		//プレイヤーの半径 + 敵の半径で判定
+		if (dist < player->GetCollisionRadius() + enemy->GetCollisionRadius())
+		{
+			//プレイヤーを死亡状態にする
+			player->Dead();
+
+			//爆発エフェクト生成
+			ExplosionEffect* effect = new ExplosionEffect(player->GetPos());
+			effect->SetPlayerEffect(true); // プレイヤー用エフェクトに設定
+			AddObject(effect);
+
+			scene_ = 2;          // ゲームオーバーへ
+			gameOverTimer_ = 0;  // タイマー初期化
+
+			break; //1回当たったら終了
+		}
+	}
+}
+
 void Stage::DeleteBullet()
 {
 	//賞味期限切れの弾を消す
@@ -229,20 +358,41 @@ void Stage::DeleteBullet()
 
 void Stage::DeleteEnemy()
 {
-	//死んでる敵を消す
+	// 死んでいる敵をdeleteする
 	for (auto& itr : objects)
 	{
 		if (itr->GetType() == OBJ_TYPE::ENEMY)
 		{
-			Enemy* b = (Enemy*)(itr);
-			if (b->IsAlive() == false)
+			Enemy* e = (Enemy*)itr;
+
+			if (!e->IsAlive())
 			{
-				delete b;
-				itr = nullptr; //ポインタをnullptrにしておく
+				delete e;
+				itr = nullptr;
 			}
 		}
 	}
-	//次に、箱の中身を確認して、nullptrがあったら箱から消す(箱自体を詰める）
+
+	// 生きている敵がいるかチェック
+	bool existEnemy = false;
+
+	for (auto& obj : objects)
+	{
+		Enemy* enemy = dynamic_cast<Enemy*>(obj);
+		if (enemy && enemy->IsAlive())
+		{
+			existEnemy = true;
+			break;
+		}
+	}
+
+	// 1体もいなければゲーム終了
+	if (!existEnemy)
+	{
+		scene_ = 2; // ゲームオーバー（またはクリア）
+	}
+
+	// nullptr を詰める
 	for (auto it = objects.begin(); it != objects.end(); )
 	{
 		if (*it == nullptr)
@@ -266,4 +416,24 @@ void Stage::ShootBullet()
 
 	Bullet* b = new Bullet(pos, v, bcol, r, life);
 	AddObject(b);
+}
+
+// 全オブジェクトを削除して完全リセットする関数
+void Stage::ClearAllObjects()
+{
+	// まず中身をdeleteする
+	for (auto& obj : objects)
+	{
+		if (obj != nullptr)
+		{
+			delete obj;
+			obj = nullptr;
+		}
+	}
+
+	// vectorを空にする
+	objects.clear();
+
+	// プレイヤーポインタも安全のためリセット
+	player = nullptr;
 }

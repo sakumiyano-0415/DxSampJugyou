@@ -10,7 +10,9 @@ public:
 	void Update() override;
 	void Draw() override;
 	bool IsFinished() const { return isFinished_; }
-	
+	bool isPlayerEffect_; // プレイヤーの爆発かどうか
+	// プレイヤー用エフェクトかどうか設定する関数
+	void SetPlayerEffect(bool flag);
 
 	struct Particle
 	{
